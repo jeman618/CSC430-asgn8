@@ -1,0 +1,14 @@
+#lang rhombus
+
+println("Hello, World!")
+/*print({let {[x = 5]
+            [y = 7]} in
+ {+ x y}
+end})*/
+
+fun interp(f):
+  match f
+  | Real: "Real"
+  | ~else: "TODO"
+
+interp(5)
