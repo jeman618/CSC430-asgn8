@@ -1,12 +1,5 @@
 #lang rhombus/and_meta
 
-
-println("Hello, World!")
-/*print({let {[x = 5]
-            [y = 7]} in
- {+ x y}
-end})*/
-
 // taken from rhombus documentation
 defn.macro 'datatype $(name :: Identifier)
             | $(variant :: Identifier)($field, ...)
