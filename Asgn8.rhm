@@ -1,5 +1,7 @@
 #lang rhombus/and_meta
 
+import: rhombus/rx open
+
 // taken from rhombus documentation
 defn.macro 'datatype $(name :: Identifier)
             | $(variant :: Identifier)($field, ...)
@@ -15,13 +17,23 @@ datatype ExprC
 | NumC(n :: Real)
 | IdC(id :: Symbol)
 | StringC(s :: String)
+| IfC(cond :: ExprC, then :: ExprC, else :: ExprC)
+  // this is just to check if IfC works
+| BoolC(t :: Boolean)
 
 fun interp(exp :: ExprC):
   match exp
   | NumC(n) : n
   | IdC(id) : id
   | StringC(s) : s
-  
+  | IfC(cond, then, else) :
+      def c = cond.t
+      if c == #true
+      | interp(then)
+      | interp(else)
+
 interp(NumC(5))
 interp(IdC(#'x))
 interp(StringC("Hello"))
+interp(IfC(BoolC(#true), NumC(5), NumC(4)))
+interp(IfC(BoolC(#false), NumC(5), NumC(4)))
