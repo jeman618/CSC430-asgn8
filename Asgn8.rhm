@@ -1,4 +1,5 @@
-#lang rhombus
+#lang rhombus/and_meta
+
 
 println("Hello, World!")
 /*print({let {[x = 5]
@@ -6,9 +7,28 @@ println("Hello, World!")
  {+ x y}
 end})*/
 
-fun interp(f):
-  match f
-  | Real: "Real"
-  | ~else: "TODO"
+// taken from rhombus documentation
+defn.macro 'datatype $(name :: Identifier)
+            | $(variant :: Identifier)($field, ...)
+            | ...':
+  // result via template
+  'class $name():
+     nonfinal
+   class $variant($field, ...):
+     extends $name
+   ...'
 
-interp(5)
+datatype ExprC
+| NumC(n :: Real)
+| IdC(id :: Symbol)
+| StringC(s :: String)
+
+fun interp(exp :: ExprC):
+  match exp
+  | NumC(n) : n
+  | IdC(id) : id
+  | StringC(s) : s
+  
+interp(NumC(5))
+interp(IdC(#'x))
+interp(StringC("Hello"))
