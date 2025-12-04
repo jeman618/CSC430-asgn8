@@ -1,7 +1,5 @@
 #lang rhombus/and_meta
 
-import: rhombus/rx open
-
 // taken from rhombus documentation
 defn.macro 'datatype $(name :: Identifier)
             | $(variant :: Identifier)($field, ...)
@@ -20,6 +18,30 @@ datatype ExprC
 | IfC(cond :: ExprC, then :: ExprC, else :: ExprC)
   // this is just to check if IfC works
 | BoolC(t :: Boolean)
+
+/* datatype Value
+| Real
+| BoolV(b :: Boolean)
+| String
+| CloV(params :: List, body :: Any, env :: Env)
+| PrimV(name :: Symbol)
+*/
+
+// creating env
+
+/*def init_env :: Env =
+             [Binding(#'+, PrimV(#'+)),
+              Binding(#'-, PrimV(#'-)),
+              Binding(#'*, PrimV(#'*)),
+              Binding(#'/, PrimV(#'/)),
+              Binding(#'<=, PrimV(#'<=)),
+              Binding(#'substring, PrimV(#'substring)),
+              Binding(#'strlen, PrimV(#'strlen)),
+              Binding(#'equal?, PrimV(#'equal?)),
+              Binding(#'error, PrimV(#'error)),
+              Binding(#'true, BoolV(#true)),
+              Binding(#'false, BoolV(#false))]
+*/
 
 fun interp(exp :: ExprC):
   match exp
