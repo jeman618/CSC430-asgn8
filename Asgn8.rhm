@@ -15,47 +15,69 @@ datatype ExprC
 | NumC(n :: Real)
 | IdC(id :: Symbol)
 | StringC(s :: String)
-| IfC(cond :: ExprC, then :: ExprC, else :: ExprC)
+| IfC(c :: ExprC, t :: ExprC, e :: ExprC)
+| LamC(params :: List, body :: ExprC)
+| AppC(fun :: ExprC, args ::List)
   // this is just to check if IfC works
 | BoolC(t :: Boolean)
 
-/* datatype Value
-| Real
+datatype Value
+| NumV(n :: Real)
 | BoolV(b :: Boolean)
-| String
-| CloV(params :: List, body :: Any, env :: Env)
+| StringV(s :: String)
+| CloV(params :: List, body :: Any, env :: List)
 | PrimV(name :: Symbol)
-*/
 
 // creating env
+class Binding(name :: Symbol, val :: Value)
 
-/*def init_env :: Env =
-             [Binding(#'+, PrimV(#'+)),
-              Binding(#'-, PrimV(#'-)),
-              Binding(#'*, PrimV(#'*)),
-              Binding(#'/, PrimV(#'/)),
-              Binding(#'<=, PrimV(#'<=)),
+def init_env :
+             [Binding(#'#{+}, PrimV(#'#{+})),
+              Binding(#'#{-}, PrimV(#'#{-})),
+              Binding(#'#{*}, PrimV(#'#{*})),
+              Binding(#'#{/}, PrimV(#'#{/})),
+              Binding(#'#{<=}, PrimV(#'#{<=})),
               Binding(#'substring, PrimV(#'substring)),
               Binding(#'strlen, PrimV(#'strlen)),
-              Binding(#'equal?, PrimV(#'equal?)),
+              Binding(#'#{equal?}, PrimV(#'#{equal?})),
               Binding(#'error, PrimV(#'error)),
               Binding(#'true, BoolV(#true)),
               Binding(#'false, BoolV(#false))]
-*/
 
-fun interp(exp :: ExprC):
+// extend-env extends the closure environment with new bindings
+fun extend_env(name :: Symbol, val :: Value, env :: List) :: List:
+  env ++ [Binding(name, val)]
+
+// still trying to get this to iterate through env
+// lookup looks for values in given env
+fun lookup(for :: Symbol, env :: List) :: Value:
+    match env:
+    | [] : error("SHEQ: lookup could not find: " + to_string(for))
+    | [Binding(name, val)] :
+        if name == for
+        | val
+        | lookup(name, env)
+
+// apply_PrimV applies the operation for the corresponding primop
+fun apply_PrimV(name :: Symbol, args :: List):
+  println("TODO")
+
+// interp interprets an expression with a given environment
+fun interp(exp :: ExprC, env :: List):
   match exp
   | NumC(n) : n
   | IdC(id) : id
   | StringC(s) : s
-  | IfC(cond, then, else) :
-      def c = cond.t
-      if c == #true
-      | interp(then)
-      | interp(else)
+  | IfC(c, t, e) :
+      if c.t == #true
+      | interp(t, env)
+      | interp(e, env)
 
-interp(NumC(5))
-interp(IdC(#'x))
-interp(StringC("Hello"))
-interp(IfC(BoolC(#true), NumC(5), NumC(4)))
-interp(IfC(BoolC(#false), NumC(5), NumC(4)))
+interp(NumC(5), init_env)
+interp(IdC(#'x), init_env)
+interp(StringC("Hello"), init_env)
+interp(IfC(BoolC(#true), NumC(5), NumC(4)), init_env)
+interp(IfC(BoolC(#false), NumC(5), NumC(4)), init_env)
+
+def new_env = extend_env(#'x, NumV(5), init_env)
+// lookup(#'x, new_env)
