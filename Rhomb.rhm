@@ -81,18 +81,18 @@ fun apply_PrimV(name :: Symbol, args :: List):: Value:
   match name
   | #'#{+}:
       match args
-      | [NumV(a), NumV(b)]: NumV(a+b)
+      | [NumV(a), NumV(b)]: NumV(a + b)
       | ~else: error("Wrong Args")
   | #'#{-}:
       match args
-      | [NumV(a), NumV(b)]: NumV(a-b)
+      | [NumV(a), NumV(b)]: NumV(a - b)
       | ~else: error("Wrong Args")
   | #'#{/}:
       match args
       | [NumV(a), NumV(b)]:
           if b == 0
           | error("SHEQ: Divided by 0")
-          |NumV(a+b)
+          |NumV(a / b)
       | ~else: error("Wrong Args")
   | #'#{*}:
       match args
