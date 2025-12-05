@@ -1,0 +1,225 @@
+#lang rhombus/and_meta
+
+// taken from rhombus documentation
+//decalares a new macro def and takes the datatype name and captreus its varianevarient 
+defn.macro 'datatype $(name :: Identifier)
+            | $(variant :: Identifier)($field, ...)
+            | ...':
+  // result via template
+  'class $name():
+     nonfinal
+   class $variant($field, ...):
+     extends $name
+   ...'
+
+datatype ExprC
+| NumC(n :: Real)
+| IdC(id :: Symbol)
+| StringC(s :: String)
+| IfC(c :: ExprC, t :: ExprC, e :: ExprC)
+  //Params list and body of functoin 
+| LamC(params :: List, body :: ExprC)
+  //the function expression to call and the list of args
+| AppC(fun :: ExprC, args ::List)
+  //let binding expresion takes in name of value paris to bind and epxression where they're ava 
+| LetC(Bindings :: List, body :: ExprC)
+  // this is just to check if IfC works
+//| BoolC(t :: Boolean)
+  
+
+datatype Value
+| NumV(n :: Real)
+| BoolV(b :: Boolean)
+| StringV(s :: String)
+  //clousre function takes the paramaters names, body =, and captures the environment
+| CloV(params :: List, body :: Any, env :: List)
+ //prim symbols we're going to look up later
+| PrimV(name :: Symbol)
+// creating env
+  //The variable binding its symbol and what it equals or what operatoin it has
+class Binding(name :: Symbol, val :: Value)
+
+//Binding our prim symbols to their prim op 
+def init_env :
+             [Binding(#'#{+}, PrimV(#'#{+})),
+              Binding(#'#{-}, PrimV(#'#{-})),
+              Binding(#'#{*}, PrimV(#'#{*})),
+              Binding(#'#{/}, PrimV(#'#{/})),
+              Binding(#'#{<=}, PrimV(#'#{<=})),
+              Binding(#'substring, PrimV(#'substring)),
+              Binding(#'strlen, PrimV(#'strlen)),
+              Binding(#'#{equal?}, PrimV(#'#{equal?})),
+              Binding(#'error, PrimV(#'error)),
+              Binding(#'true, BoolV(#true)),
+              Binding(#'false, BoolV(#false))]
+
+// extend-env extends the closure environment with new bindings
+//Extends the enviornemtn to a form a new bidning and returns a new element
+fun extend_env(name :: Symbol, val :: Value, env :: List) :: List:
+  env ++ [Binding(name, val)]
+
+// still trying to get this to iterate through env
+// lookup looks for values in given env
+ //cheecks if the symbol we have is in the list first it checks if its empty
+  //if not it 
+fun lookup(name :: Symbol, env :: List) :: Value:
+  match env
+  | []: error("SHEQ: not found")
+  | [Binding(n, v), & rest]:
+      if n == name
+      | v
+      | lookup(name, rest)
+
+//Extends the env with mutli bindings at once
+  
+fun extend_many(names :: List, vals :: List, env :: List) :: List:
+  match [names, vals]
+  | [[], []]: env
+  | [[n, & ns], [v, & vs]]: extend_many(ns, vs, extend_env(n, v, env))
+  | ~else: error("SHEQ: wrong number of args")
+
+// apply_PrimV applies the operation for the corresponding primop
+           
+fun apply_PrimV(name :: Symbol, args :: List):: Value:
+  match name
+  | #'#{+}:
+      match args
+      | [NumV(a), NumV(b)]: NumV(a+b)
+      | ~else: error("Wrong Args")
+  | #'#{-}:
+      match args
+      | [NumV(a), NumV(b)]: NumV(a-b)
+      | ~else: error("Wrong Args")
+  | #'#{/}:
+      match args
+      | [NumV(a), NumV(b)]:
+          if b == 0
+          | error("SHEQ: Divided by 0")
+          |NumV(a+b)
+      | ~else: error("Wrong Args")
+  | #'#{*}:
+      match args
+      |[NumV(a), NumV(b)]: NumV(a * b)
+      | ~else: error("SHEQ: Wrong args")
+  |#'#{<=}:
+      match args
+      | [NumV(a), NumV(b)]: BoolV(a <= b)
+      | ~else: error("SHEQ: wrong args")
+  | #'substring:
+      //Substring is a built in function in rhombus which extracts
+      //part of the substring from the start index to the stop
+      //and math exact just converts 
+      match args
+      | [StringV(s), NumV(start), NumV(stop)]:
+          StringV(String.substring(s, start, stop))
+      | ~else: error("SHEQ: sub error")
+  | #'strlen:
+      match args
+      //String.length is a function too where we can check the lenght of astring 
+      | [StringV(s)]: NumV(String.length(s))
+      | ~else: error("SHEQ: strlen needs string")
+     //equal testing compares values of the same type 
+  | #'#{equal?}:
+      match args
+      | [NumV(a), NumV(b)]: BoolV(a == b)
+      | [BoolV(a), BoolV(b)]: BoolV(a == b)
+      | [StringV(a), StringV(b)]: BoolV(a == b)
+      | [_, _]: BoolV(#false)
+      | ~else: error("SHEQ: needs 2 args")
+  | #'error:
+      match args
+      | [_]: error("SHEQ: erorr")
+      | ~else: error("SHEQ: error needs 1 arg")
+  | ~else: error("SHEQ: not a primitive")
+
+              // Process let bindings
+           //process let bindings seq check it its empty if not
+           //we process one binding before going to the rest by taking the binding
+           //evalutng the expre for a a vlau e
+           //adding it to the env
+           //then processing the rest of the env 
+fun process_bindings(bindings :: List, env :: List) :: List:
+  match bindings
+  | []: env
+  | [[name, expr], & rest]:
+      process_bindings(rest, extend_env(name, interp(expr, env), env))                 
+  
+
+// interp interprets an expression with a given environment
+fun interp(exp :: ExprC, env :: List):
+  match exp
+  | NumC(n) : NumV(n)
+  | IdC(id) : lookup(id, env)
+  | StringC(s) : StringV(s)
+  | IfC(c, t, e) :
+      if BoolV(#true) == #true
+      | interp(t, env)
+      | interp(e, env)
+   
+  | LetC(bindings, body):
+      interp(body, process_bindings(bindings, env))
+  | LamC (params, body):
+      CloV(params, body, env)
+  | AppC(fun_expr, arg_exprs):
+      let fun_val = interp(fun_expr, env)
+      let arg_vals = for List (a: arg_exprs): interp(a, env)
+      match fun_val
+      | PrimV(name): apply_PrimV(name, arg_vals)
+      | CloV(params, body, clo_env):
+          let new_env = extend_many(params, arg_vals, clo_env)
+          interp(body, new_env)
+      | ~else: error("SHEQ: Not a function")
+               
+
+// TESTS
+println("Testing Numbers:")
+interp(NumC(5), init_env)
+interp(NumC(42), init_env)
+
+println("\nTesting Strings:")
+interp(StringC("hello"), init_env)
+
+println("\nTesting Booleans:")
+interp(IdC(#'true), init_env)
+interp(IdC(#'false), init_env)
+
+println("\nTesting Arithmetic:")
+interp(AppC(IdC(#'#{+}), [NumC(3), NumC(4)]), init_env)
+interp(AppC(IdC(#'#{-}), [NumC(10), NumC(3)]), init_env)
+interp(AppC(IdC(#'#{*}), [NumC(4), NumC(5)]), init_env)
+interp(AppC(IdC(#'#{/}), [NumC(10), NumC(2)]), init_env)
+
+println("\nTesting Comparison:")
+interp(AppC(IdC(#'#{<=}), [NumC(3), NumC(5)]), init_env)
+interp(AppC(IdC(#'#{<=}), [NumC(5), NumC(3)]), init_env)
+interp(AppC(IdC(#'#{equal?}), [NumC(5), NumC(5)]), init_env)
+interp(AppC(IdC(#'#{equal?}), [NumC(5), NumC(3)]), init_env)
+
+println("\nTesting String operations:")
+interp(AppC(IdC(#'strlen), [StringC("hello")]), init_env)
+interp(AppC(IdC(#'substring), [StringC("hello"), NumC(1), NumC(4)]), init_env)
+
+println("\nTesting If:")
+interp(IfC(IdC(#'true), NumC(1), NumC(2)), init_env)
+interp(IfC(IdC(#'false), NumC(1), NumC(2)), init_env)
+
+println("\nTesting Let:")
+interp(LetC([[#'x, NumC(5)]], IdC(#'x)), init_env)
+interp(LetC([[#'x, NumC(3)], [#'y, NumC(4)]], 
+            AppC(IdC(#'#{+}), [IdC(#'x), IdC(#'y)])), init_env)
+
+println("\nTesting Lambda:")
+interp(AppC(LamC([#'x], AppC(IdC(#'#{+}), [IdC(#'x), NumC(1)])), 
+            [NumC(5)]), init_env)
+
+println("\nTesting Closure:")
+interp(LetC([[#'x, NumC(10)]], 
+            AppC(LamC([#'y], AppC(IdC(#'#{+}), [IdC(#'x), IdC(#'y)])), 
+                 [NumC(5)])), init_env)
+
+println("\nTesting Higher-order:")
+interp(LetC([[#'f, LamC([#'x], AppC(IdC(#'#{+}), [IdC(#'x), NumC(1)]))]],
+            AppC(IdC(#'f), [NumC(5)])), init_env)
+
+//def new_env = extend_env(#'x, NumV(5), init_env)
+// lookup(#'x, new_env)
