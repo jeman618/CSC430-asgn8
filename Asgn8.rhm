@@ -17,7 +17,7 @@ datatype ExprC
 | StringC(s :: String)
 | IfC(c :: ExprC, t :: ExprC, e :: ExprC)
 | LamC(params :: List, body :: ExprC)
-| AppC(fun :: ExprC, args ::List)
+| AppC(fun :: ExprC, args :: List)
   // this is just to check if IfC works
 | BoolC(t :: Boolean)
 
@@ -45,7 +45,7 @@ def init_env :
               Binding(#'false, BoolV(#false))]
 
 // extend-env extends the closure environment with new bindings
-fun extend_env(name :: Symbol, val :: Value, env :: List) :: List:
+fun extend_env(name :: Symbol, val :: Value, env :: List.of(Binding)) :: List:
   env ++ [Binding(name, val)]
 
 // still trying to get this to iterate through env
@@ -59,7 +59,7 @@ fun lookup(for :: Symbol, env :: List) :: Value:
         | lookup(name, env)
 
 // apply_PrimV applies the operation for the corresponding primop
-fun apply_PrimV(name :: Symbol, args :: List):
+fun apply_PrimV(name :: Symbol, args :: List.of(Value)):
   println("TODO")
 
 // interp interprets an expression with a given environment
@@ -72,6 +72,12 @@ fun interp(exp :: ExprC, env :: List):
       if c.t == #true
       | interp(t, env)
       | interp(e, env)
+  | LamC([id, ...], body):
+      println("TODO")
+  | AppC(f, [args, ...]):
+      println("TODO")
+  
+      
 
 interp(NumC(5), init_env)
 interp(IdC(#'x), init_env)
