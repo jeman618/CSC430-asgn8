@@ -53,10 +53,10 @@ fun extend_env(name :: Symbol, val :: Value, env :: List.of(Binding)) :: List:
 fun lookup(for :: Symbol, env :: List) :: Value:
     match env:
     | [] : error("SHEQ: lookup could not find: " + to_string(for))
-    | [Binding(name, val)] :
+    | List.cons(Binding(name, val), rest) :
         if name == for
         | val
-        | lookup(name, env)
+        | lookup(for, rest)
 
 // apply_PrimV applies the operation for the corresponding primop
 fun apply_PrimV(name :: Symbol, args :: List.of(Value)):
@@ -86,4 +86,4 @@ interp(IfC(BoolC(#true), NumC(5), NumC(4)), init_env)
 interp(IfC(BoolC(#false), NumC(5), NumC(4)), init_env)
 
 def new_env = extend_env(#'x, NumV(5), init_env)
-// lookup(#'x, new_env)
+lookup(#'x, new_env)
