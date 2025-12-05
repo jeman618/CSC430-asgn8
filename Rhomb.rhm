@@ -23,20 +23,18 @@ datatype ExprC
 | AppC(fun :: ExprC, args ::List)
   //let binding expresion takes in name of value paris to bind and epxression where they're ava 
 | LetC(Bindings :: List, body :: ExprC)
-  // this is just to check if IfC works
-//| BoolC(t :: Boolean)
-  
 
 datatype Value
 | NumV(n :: Real)
 | BoolV(b :: Boolean)
 | StringV(s :: String)
-  //clousre function takes the paramaters names, body =, and captures the environment
+  //closure function takes the paramaters names, body =, and captures the environment
 | CloV(params :: List, body :: Any, env :: List)
- //prim symbols we're going to look up later
+ //primV symbols we're going to look up later
 | PrimV(name :: Symbol)
+  
 // creating env
-  //The variable binding its symbol and what it equals or what operatoin it has
+  //The variable binding its symbol and what it equals or what operation it has
 class Binding(name :: Symbol, val :: Value)
 
 //Binding our prim symbols to their prim op 
@@ -58,14 +56,13 @@ def init_env :
 fun extend_env(name :: Symbol, val :: Value, env :: List) :: List:
   env ++ [Binding(name, val)]
 
-// still trying to get this to iterate through env
 // lookup looks for values in given env
  //cheecks if the symbol we have is in the list first it checks if its empty
   //if not it 
 fun lookup(name :: Symbol, env :: List) :: Value:
   match env
   | []: error("SHEQ: not found")
-  | [Binding(n, v), & rest]:
+  | List.cons(Binding(n, v), rest):
       if n == name
       | v
       | lookup(name, rest)
@@ -128,7 +125,7 @@ fun apply_PrimV(name :: Symbol, args :: List):: Value:
       | ~else: error("SHEQ: needs 2 args")
   | #'error:
       match args
-      | [_]: error("SHEQ: erorr")
+      | [_]: error("SHEQ: user error")
       | ~else: error("SHEQ: error needs 1 arg")
   | ~else: error("SHEQ: not a primitive")
 
@@ -152,7 +149,7 @@ fun interp(exp :: ExprC, env :: List):
   | IdC(id) : lookup(id, env)
   | StringC(s) : StringV(s)
   | IfC(c, t, e) :
-      if BoolV(#true) == #true
+      if BoolV.b(interp(c, env)) == #true
       | interp(t, env)
       | interp(e, env)
    
@@ -169,57 +166,71 @@ fun interp(exp :: ExprC, env :: List):
           let new_env = extend_many(params, arg_vals, clo_env)
           interp(body, new_env)
       | ~else: error("SHEQ: Not a function")
-               
+
+// serialize accepts any SHEQ4 value and returns a string
+fun serialize(val :: Value) :: String:
+  match val:
+  | NumV(n): to_string(n)
+  | StringV(s): s
+  | BoolV(b):
+      if (b == #true)
+      | "true"
+      | "false"
+  | CloV(_, _, _): "#<procedure>"
+  | PrimV(_): "#<primop>"
+
+// top_interp evaluates an expression and turns it to a string
+fun top_interp(s :: Any, env :: List) :: String:
+  serialize(interp(s, env))
+  
 
 // TESTS
 println("Testing Numbers:")
-interp(NumC(5), init_env)
-interp(NumC(42), init_env)
+top_interp(NumC(5), init_env)
+top_interp(NumC(42), init_env)
 
 println("\nTesting Strings:")
-interp(StringC("hello"), init_env)
+top_interp(StringC("Hello there!"), init_env)
 
 println("\nTesting Booleans:")
-interp(IdC(#'true), init_env)
-interp(IdC(#'false), init_env)
+top_interp(IdC(#'true), init_env)
+top_interp(IdC(#'false), init_env)
 
 println("\nTesting Arithmetic:")
-interp(AppC(IdC(#'#{+}), [NumC(3), NumC(4)]), init_env)
-interp(AppC(IdC(#'#{-}), [NumC(10), NumC(3)]), init_env)
-interp(AppC(IdC(#'#{*}), [NumC(4), NumC(5)]), init_env)
-interp(AppC(IdC(#'#{/}), [NumC(10), NumC(2)]), init_env)
+top_interp(AppC(IdC(#'#{+}), [NumC(3), NumC(4)]), init_env)
+top_interp(AppC(IdC(#'#{-}), [NumC(10), NumC(3)]), init_env)
+top_interp(AppC(IdC(#'#{*}), [NumC(4), NumC(5)]), init_env)
+top_interp(AppC(IdC(#'#{/}), [NumC(10), NumC(2)]), init_env)
 
 println("\nTesting Comparison:")
-interp(AppC(IdC(#'#{<=}), [NumC(3), NumC(5)]), init_env)
-interp(AppC(IdC(#'#{<=}), [NumC(5), NumC(3)]), init_env)
-interp(AppC(IdC(#'#{equal?}), [NumC(5), NumC(5)]), init_env)
-interp(AppC(IdC(#'#{equal?}), [NumC(5), NumC(3)]), init_env)
+top_interp(AppC(IdC(#'#{<=}), [NumC(3), NumC(5)]), init_env)
+top_interp(AppC(IdC(#'#{<=}), [NumC(5), NumC(3)]), init_env)
+top_interp(AppC(IdC(#'#{equal?}), [NumC(5), NumC(5)]), init_env)
+top_interp(AppC(IdC(#'#{equal?}), [NumC(5), NumC(3)]), init_env)
 
 println("\nTesting String operations:")
-interp(AppC(IdC(#'strlen), [StringC("hello")]), init_env)
-interp(AppC(IdC(#'substring), [StringC("hello"), NumC(1), NumC(4)]), init_env)
+top_interp(AppC(IdC(#'strlen), [StringC("hello")]), init_env)
+top_interp(AppC(IdC(#'substring), [StringC("hello"), NumC(1), NumC(4)]), init_env)
 
 println("\nTesting If:")
-interp(IfC(IdC(#'true), NumC(1), NumC(2)), init_env)
-interp(IfC(IdC(#'false), NumC(1), NumC(2)), init_env)
+top_interp(IfC(IdC(#'true), NumC(1), NumC(2)), init_env)
+top_interp(IfC(IdC(#'false), NumC(1), NumC(2)), init_env)
 
 println("\nTesting Let:")
-interp(LetC([[#'x, NumC(5)]], IdC(#'x)), init_env)
-interp(LetC([[#'x, NumC(3)], [#'y, NumC(4)]], 
-            AppC(IdC(#'#{+}), [IdC(#'x), IdC(#'y)])), init_env)
+top_interp(LetC([[#'x, NumC(5)]], IdC(#'x)), init_env)
+top_interp(LetC([[#'x, NumC(3)], [#'y, NumC(4)]],
+                AppC(IdC(#'#{+}), [IdC(#'x), IdC(#'y)])), init_env)
 
 println("\nTesting Lambda:")
-interp(AppC(LamC([#'x], AppC(IdC(#'#{+}), [IdC(#'x), NumC(1)])), 
-            [NumC(5)]), init_env)
+top_interp(AppC(LamC([#'x],
+                     AppC(IdC(#'#{+}), [IdC(#'x), NumC(1)])), [NumC(5)]), init_env)
 
 println("\nTesting Closure:")
-interp(LetC([[#'x, NumC(10)]], 
-            AppC(LamC([#'y], AppC(IdC(#'#{+}), [IdC(#'x), IdC(#'y)])), 
-                 [NumC(5)])), init_env)
+top_interp(LetC([[#'x, NumC(10)]],
+                AppC(LamC([#'y],
+                          AppC(IdC(#'#{+}), [IdC(#'x), IdC(#'y)])), [NumC(5)])), init_env)
 
 println("\nTesting Higher-order:")
-interp(LetC([[#'f, LamC([#'x], AppC(IdC(#'#{+}), [IdC(#'x), NumC(1)]))]],
-            AppC(IdC(#'f), [NumC(5)])), init_env)
-
-//def new_env = extend_env(#'x, NumV(5), init_env)
-// lookup(#'x, new_env)
+top_interp(LetC([[#'f, LamC([#'x],
+                            AppC(IdC(#'#{+}), [IdC(#'x), NumC(1)]))]],
+                AppC(IdC(#'f), [NumC(5)])), init_env)
